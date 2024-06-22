@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Download</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            background-color: #eef2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 92vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            padding-top: 56px; /* Height of the navbar */
+        }
+        .navbar {
+            width: 100%;
+            background-color: #333;
+            color: white;
+            padding: 0.3rem;
+            display: flex;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            z-index: 1000;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+        }
+        .navbar img {
+            border-radius: 50%;
+            cursor: pointer;
+            height: 40px;
+            width: 40px;
+        }
+        .card {
+            background-color: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .form-group label {
+            font-weight: bold;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+            width: 100%;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            display: none;
+        }
+        .thumbnail {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .list-group-item {
+            border: none;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+        }
+        .list-group-item a {
+            color: #007bff;
+        }
+        .list-group-item a:hover {
+            color: #0056b3;
+        }
+        body.dark-mode {
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        .dark-mode .card {
+            background-color: #1e1e1e;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+        .dark-mode #historyModal,
+        .dark-mode #profileModal {
+          color: black;
+        }
+        .dark-mode .btn-primary {
+            background-color: #333;
+        }
+        .dark-mode .btn-primary:hover {
+            background-color: #555;
+        }
+        .dark-mode .list-group-item {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+        .dark-mode .list-group-item a {
+            color: #70a1ff;
+        }
+        .dark-mode .list-group-item a:hover {
+            color: #1e90ff;
+        }
+        .navbar button i {
+            font-size: 20px;
+        }
+        #modal-profile-name {
+          font-weight: bold; 
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <button id="toggle-dark-mode" class="btn btn-link text-white"><i class="fas fa-moon"></i></button>
+        <button id="history-button" class="btn btn-link text-white"><i class="fas fa-history"></i></button>
+        <button id="whatsapp-button" class="btn btn-link text-white"><a href="http://wa.me/+244958610214" target="_blank"><i class="fab fa-whatsapp"></i></a></button>
+        <button class="btn btn-link text-white"><a href="https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://m.youtube.com/%3Fhl%3Dpt_PT&ved=2ahUKEwiajvGAqPCGAxU5QEEAHVyiCRAQjjh6BAglEAE&usg=AOvVaw04i_mr_GbCuDmlOcfoG14x" target="_blank"><i class="fab fa-youtube"></i></a></button>
+        <div id="profile-section">
+            <button id="sign-in-button" class="btn btn-primary">Login with Google</button>
+            <img id="profile-photo" src="" alt="Profile Photo" style="display: none;">
+        </div>
+    </nav>
+
+    <div class="card">
+        <div class="card-body">
+            <form id="video-form">
+                <div class="form-group">
+                    <label for="video-url">Video YouTube URL <i class="fas fa-paperclip"></i></label>
+                    <input type="url" class="form-control" id="video-url" placeholder="Enter video URL" required>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-download"></i> Download</button>
+            </form>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <!-- Modal for profile info -->
+    <div class="modal fade" id="profileModal" tabindex="-1" role="dialog" aria-labelledby="profileModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="profileModalLabel">Profile Information</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modal-profile-photo" src="" alt="Profile Photo" class="rounded-circle mb-3" style="width: 100px; height: 100px;">
+                    <p id="modal-profile-name"></p>
+                    <p id="modal-profile-email"></p>
+                </div>
+                <div class="modal-footer">
+                    <button id="logout" class="btn btn-danger">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for history -->
+    <div class="modal fade" id="historyModal" tabindex="-1" role="dialog" aria-labelledby="historyModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="historyModalLabel">History</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <ul class="list-group" id="history-list">
+                        <!-- History items will be injected here -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCzdMhSfJvvFBAF83X6oP2lygu20_gwG6M",
+            authDomain: "noticias-ab2f1.firebaseapp.com",
+            projectId: "noticias-ab2f1",
+            storageBucket: "noticias-ab2f1.appspot.com",
+            messagingSenderId: "545964841107",
+            appId: "1:545964841107:web:734ab7ad6153eb8e569566"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        const auth = firebase.auth();
+        const historyList = JSON.parse(localStorage.getItem('historyList')) || [];
+
+        document.getElementById('toggle-dark-mode').addEventListener('click', function() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('dark-mode', document.body.classList.contains('dark-mode'));
+        });
+
+        // Check and apply the dark mode state on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('dark-mode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+        });
+
+        document.getElementById('video-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const url = 'https://social-download-all-in-one.p.rapidapi.com/v1/social/autolink';
+            const videoUrl = document.getElementById('video-url').value;
+
+            const options = {
+                method: 'POST',
+                headers: {
+                    'x-rapidapi-key': '3e5c6eb544msh23f6cdb9977492dp175e5cjsn305dccac9a4e',
+                    'x-rapidapi-host': 'social-download-all-in-one.p.rapidapi.com',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: videoUrl })
+            };
+
+            Swal.fire({
+                title: 'Por Favor, aguarde...',
+                text: 'Buscando Link...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const response = await fetch(url, options);
+                const result = await response.json();
+                Swal.close();
+
+                if (result.error) {
+                    Swal.fire('Error', 'An error occurred while fetching the download link.', 'error');
+                    return;
+                }
+
+                let resultHtml = `
+                    <div class="mt-4">
+                        <small><b>${result.title}</b></small>
+                        <img src="${result.thumbnail}" alt="Thumbnail" class="thumbnail img-fluid">
+                        <p><i class="fas fa-clock"></i> ${result.duration} seconds</p>
+                        <p><b>Author: ${result.author}</b></p>
+                        <h4>Download Links:</h4>
+                        <ul class="list-group">
+                `;
+
+                result.medias.forEach(media => {
+                    resultHtml += `
+                        <li class="list-group-item">
+                            <a href="${media.url}" target="_blank"><i class="fas fa-download"></i> (${media.quality} - ${media.extension})</a>
+                        </li>
+                    `;
+                });
+
+                resultHtml += '</ul></div>';
+                const resultElement = document.getElementById('result');
+                resultElement.style.display = 'block';
+                resultElement.innerHTML = resultHtml;
+
+                // Save to history
+                historyList.push(result);
+                localStorage.setItem('historyList', JSON.stringify(historyList));
+
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Error', 'An error occurred while fetching the download link.', 'error');
+            }
+        });
+
+        document.getElementById('profile-photo').addEventListener('click', function() {
+            // Populate modal with profile info
+            const user = firebase.auth().currentUser;
+            if (user) {
+                document.getElementById('modal-profile-photo').src = user.photoURL || 'https://via.placeholder.com/100';
+                document.getElementById('modal-profile-name').textContent = user.displayName || 'Nome não configurado';
+                document.getElementById('modal-profile-email').textContent = user.email || 'Email não configurado';
+                $('#profileModal').modal('show');
+            }
+        });
+
+        document.getElementById('sign-in-button').addEventListener('click', async function() {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await auth.signInWithPopup(provider);
+            } catch (error) {
+                console.error('Error signing in:', error);
+                Swal.fire('Error', 'An error occurred while signing in.', 'error');
+            }
+        });
+
+        document.getElementById('logout').addEventListener('click', async function() {
+            try {
+                await auth.signOut();
+                $('#profileModal').modal('hide');
+            } catch (error) {
+                console.error('Error signing out:', error);
+                Swal.fire('Error', 'An error occurred while signing out.', 'error');
+            }
+        });
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                document.getElementById('sign-in-button').style.display = 'none';
+                document.getElementById('profile-photo').style.display = 'inline-block';
+                document.getElementById('profile-photo').src = user.photoURL || 'https://via.placeholder.com/40';
+            } else {
+                document.getElementById('sign-in-button').style.display = 'inline-block';
+                document.getElementById('profile-photo').style.display = 'none';
+            }
+        });
+
+        document.getElementById('history-button').addEventListener('click', function() {
+            const historyListElement = document.getElementById('history-list');
+            historyListElement.innerHTML = '';
+            historyList.forEach((item, index) => {
+                let historyHtml = `
+                    <li class="list-group-item" data-index="${index}">
+                        <img src="${item.thumbnail}" alt="Thumbnail" class="thumbnail img-fluid">
+                        <p><a href="${item.medias[0].url}" target="_blank">${item.title}</a></p>
+                        <button class="delete-history btn btn-danger" data-index="${index}">Excluir</button>
+                    </li>
+                `;
+                historyListElement.innerHTML += historyHtml;
+            });
+
+            // Add event listeners to delete buttons
+            const deleteButtons = document.querySelectorAll('.delete-history');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const itemIndex = button.getAttribute('data-index');
+                    try {
+                        // Remove from historyList array
+                        historyList.splice(itemIndex, 1);
+                        localStorage.setItem('historyList', JSON.stringify(historyList));
+                        button.parentNode.remove(); // Remove the list item from DOM
+                        Swal.fire('Deleted', 'History item deleted successfully.', 'success');
+                    } catch (error) {
+                        console.error('Error deleting history item:', error);
+                        Swal.fire('Error', 'An error occurred while deleting the history item.', 'error');
+                    }
+                });
+            });
+
+            $('#historyModal').modal('show');
+        });
+        
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
